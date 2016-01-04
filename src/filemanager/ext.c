@@ -775,9 +775,9 @@ regex_command_for (void *target, const vfs_path_t * filename_vpath, const char *
     gboolean error_flag = FALSE;
     int ret = 0;
     struct stat mystat;
-    int view_at_line_number;
-    char *include_target;
-    int include_target_len;
+    int view_at_line_number = 0;
+    char *include_target = NULL;
+    size_t include_target_len = 0;
     gboolean have_type = FALSE; /* Flag used by regex_check_type() */
 
     if (filename_vpath == NULL)
@@ -791,10 +791,6 @@ regex_command_for (void *target, const vfs_path_t * filename_vpath, const char *
     {
         view_at_line_number = atoi (action + 5);
         action = "View";
-    }
-    else
-    {
-        view_at_line_number = 0;
     }
 
     if (data == NULL)
@@ -868,8 +864,6 @@ regex_command_for (void *target, const vfs_path_t * filename_vpath, const char *
 
     mc_stat (filename_vpath, &mystat);
 
-    include_target = NULL;
-    include_target_len = 0;
     file_len = vfs_path_len (filename_vpath);
 
     for (p = data; *p != '\0'; p++)
@@ -886,9 +880,8 @@ regex_command_for (void *target, const vfs_path_t * filename_vpath, const char *
         if (*p == '\0')
             break;
         if (p == q)
-        {                       /* i.e. starts in the first column, should be
-                                 * keyword/descNL
-                                 */
+        {
+            /* i.e. starts in the first column, should be keyword/descNL */
             gboolean case_insense;
 
             found = FALSE;
@@ -897,7 +890,7 @@ regex_command_for (void *target, const vfs_path_t * filename_vpath, const char *
                 q = strchr (p, '\0');
             c = *q;
             *q = '\0';
-            if (include_target)
+            if (include_target != NULL)
             {
                 if ((strncmp (p, "include/", 8) == 0)
                     && (strncmp (p + 8, include_target, include_target_len) == 0))
@@ -950,7 +943,7 @@ regex_command_for (void *target, const vfs_path_t * filename_vpath, const char *
                 else
                 {
                     if ((size_t) (q - p) == file_len
-                        && cmp_func (p, vfs_path_as_str (filename_vpath), q - p) == 0)
+                        && cmp_func (p, vfs_path_as_str (filename_vpath), file_len) == 0)
                         found = TRUE;
                 }
             }
@@ -972,9 +965,6 @@ regex_command_for (void *target, const vfs_path_t * filename_vpath, const char *
                 found = TRUE;
 
             *q = c;
-            p = q;
-            if (*p == '\0')
-                break;
         }
         else
         {                       /* List of actions */
@@ -995,11 +985,11 @@ regex_command_for (void *target, const vfs_path_t * filename_vpath, const char *
 
                         include_target = p + 8;
                         t = strchr (include_target, '\n');
+
                         if (t != NULL)
-                            *t = '\0';
-                        include_target_len = strlen (include_target);
-                        if (t != NULL)
-                            *t = '\n';
+                            include_target_len = (size_t) (t - include_target);
+                        else
+                            include_target_len = strlen (include_target);
 
                         *r = c;
                         p = q;
@@ -1039,10 +1029,11 @@ regex_command_for (void *target, const vfs_path_t * filename_vpath, const char *
                     }
                 }
             }
-            p = q;
-            if (*p == '\0')
-                break;
         }
+
+        p = q;
+        if (*p == '\0')
+            break;
     }
     if (error_flag)
         ret = -1;
