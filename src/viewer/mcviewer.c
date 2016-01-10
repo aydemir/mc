@@ -371,11 +371,7 @@ mcview_load (WView * view, const char *command, const char *file, int start_line
         }
         else
         {
-            int type;
-
-            type = get_compression_type (fd, file);
-
-            if (view->magic_mode && (type != COMPRESSION_NONE))
+            if (view->magic_mode && get_compression_type (fd, file) != COMPRESSION_NONE)
             {
                 char *tmp_filename;
                 vfs_path_t *vpath1;
@@ -383,7 +379,10 @@ mcview_load (WView * view, const char *command, const char *file, int start_line
 
                 tmp_filename = g_strconcat (file, decompress_extension (type), (char *) NULL);
                 vpath1 = vfs_path_from_str (tmp_filename);
+                g_free (tmp_filename);
                 fd1 = mc_open (vpath1, O_RDONLY | O_NONBLOCK);
+                vfs_path_free (vpath1);
+
                 if (fd1 == -1)
                 {
                     g_snprintf (tmp, sizeof (tmp), _("Cannot open \"%s\" in parse mode\n%s"),
@@ -397,10 +396,8 @@ mcview_load (WView * view, const char *command, const char *file, int start_line
                     fd = fd1;
                     mc_fstat (fd, &st);
                 }
-                vfs_path_free (vpath1);
-
-                g_free (tmp_filename);
             }
+
             mcview_set_datasource_file (view, fd, &st);
         }
         retval = TRUE;
