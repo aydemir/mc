@@ -1035,9 +1035,8 @@ regex_command_for (void *target, const vfs_path_t * filename_vpath, const char *
         if (*p == '\0')
             break;
     }
-    if (error_flag)
-        ret = -1;
-    return ret;
+
+    return (error_flag ? -1 : ret);
 }
 
 /* --------------------------------------------------------------------------------------------- */
